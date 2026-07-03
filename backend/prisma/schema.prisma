@@ -1,0 +1,307 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  name          String
+  role          Role      @default(SERVIDOR)
+  passwordHash  String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  sector        Sector?   @relation(fields: [sectorId], references: [id])
+  sectorId      String?
+  documents     Document[]
+  requests      PurchaseRequest[]
+  assets        Asset[]
+  occurrences   Occurrence[]
+  events        Event[]
+  notifications Notification[]
+  logs          Log[]
+}
+
+enum Role {
+  ADMINISTRADOR
+  DIRETOR
+  GESTOR
+  SERVIDOR
+  TERCEIRIZADO
+  AUDITOR
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+}
+
+model Sector {
+  id          String     @id @default(uuid())
+  name        String     @unique
+  description String?
+  users       User[]
+  documents   Document[]
+  assets      Asset[]
+  events      Event[]
+}
+
+model Category {
+  id          String     @id @default(uuid())
+  name        String     @unique
+  description String?
+  documents   Document[]
+}
+
+model Document {
+  id          String     @id @default(uuid())
+  title       String
+  description String?
+  version     String     @default("1.0")
+  category    Category   @relation(fields: [categoryId], references: [id])
+  categoryId  String
+  uploadedBy  User       @relation(fields: [uploadedById], references: [id])
+  uploadedById String
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  tags        String[]
+  status      DocumentStatus @default(DRAFT)
+  permissions DocumentPermission[]
+}
+
+enum DocumentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model DocumentPermission {
+  id         String   @id @default(uuid())
+  document   Document @relation(fields: [documentId], references: [id])
+  documentId String
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
+  role       Role
+}
+
+model Supplier {
+  id          String    @id @default(uuid())
+  name        String
+  email       String?
+  phone       String?
+  createdAt   DateTime  @default(now())
+  purchases   Purchase[]
+}
+
+model PurchaseRequest {
+  id          String    @id @default(uuid())
+  title       String
+  description String?
+  requester   User      @relation(fields: [requesterId], references: [id])
+  requesterId String
+  status      RequestStatus @default(PENDING)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  quotes      Quote[]
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+model Quote {
+  id            String    @id @default(uuid())
+  purchase      PurchaseRequest @relation(fields: [purchaseRequestId], references: [id])
+  purchaseRequestId String
+  supplier      Supplier  @relation(fields: [supplierId], references: [id])
+  supplierId    String
+  amount        Float
+  createdAt     DateTime  @default(now())
+}
+
+model Purchase {
+  id          String    @id @default(uuid())
+  reference   String    @unique
+  supplier    Supplier  @relation(fields: [supplierId], references: [id])
+  supplierId  String
+  status      PurchaseStatus @default(REGISTERED)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  items       PurchaseItem[]
+}
+
+enum PurchaseStatus {
+  REQUESTED
+  QUOTED
+  APPROVED
+  ORDERED
+  RECEIVED
+  PAID
+  CLOSED
+}
+
+model PurchaseItem {
+  id          String   @id @default(uuid())
+  purchase    Purchase @relation(fields: [purchaseId], references: [id])
+  purchaseId  String
+  material    Material @relation(fields: [materialId], references: [id])
+  materialId  String
+  quantity    Int
+  unitPrice   Float
+}
+
+model Material {
+  id           String      @id @default(uuid())
+  name         String
+  sku          String      @unique
+  category     String?
+  unit         String
+  stockEntries StockEntry[]
+  assets       Asset[]
+}
+
+model StockEntry {
+  id           String   @id @default(uuid())
+  material     Material @relation(fields: [materialId], references: [id])
+  materialId   String
+  type         StockType
+  quantity     Int
+  recordedBy   User     @relation(fields: [recordedById], references: [id])
+  recordedById String
+  createdAt    DateTime @default(now())
+}
+
+enum StockType {
+  IN
+  OUT
+  TRANSFER
+  RESERVE
+  CONSUMPTION
+  RESTOCK
+}
+
+model Asset {
+  id            String    @id @default(uuid())
+  name          String
+  patrimony    String    @unique
+  location      String?
+  responsible   User?     @relation(fields: [responsibleId], references: [id])
+  responsibleId String?
+  status        AssetStatus @default(OPERATIONAL)
+  warrantyUntil DateTime?
+  purchaseDate  DateTime?
+  createdAt     DateTime  @default(now())
+  logs          AssetLog[]
+}
+
+enum AssetStatus {
+  OPERATIONAL
+  MAINTENANCE
+  RETIRED
+  BROKEN
+}
+
+model AssetLog {
+  id        String   @id @default(uuid())
+  asset     Asset    @relation(fields: [assetId], references: [id])
+  assetId   String
+  note      String
+  createdAt DateTime @default(now())
+}
+
+model Occurrence {
+  id          String    @id @default(uuid())
+  title       String
+  description String?
+  priority    Priority  @default(MEDIUM)
+  status      OccurrenceStatus @default(OPEN)
+  reporter    User      @relation(fields: [reporterId], references: [id])
+  reporterId  String
+  assignee     User?    @relation(fields: [assigneeId], references: [id])
+  assigneeId   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum OccurrenceStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+model Event {
+  id          String    @id @default(uuid())
+  title       String
+  description String?
+  startAt     DateTime
+  endAt       DateTime
+n  location    String?
+  createdBy   User      @relation(fields: [createdById], references: [id])
+  createdById String
+}
+
+model Agenda {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  startAt     DateTime
+  endAt       DateTime
+  location    String?
+  organizer   User     @relation(fields: [organizerId], references: [id])
+  organizerId String
+}
+
+model Message {
+  id          String   @id @default(uuid())
+  sender      User     @relation(fields: [senderId], references: [id])
+  senderId    String
+  receiver    User     @relation(fields: [receiverId], references: [id])
+  receiverId  String
+  content     String
+  createdAt   DateTime @default(now())
+  readAt      DateTime?
+}
+
+model Notification {
+  id          String   @id @default(uuid())
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+  title       String
+  body        String
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+model Log {
+  id          String   @id @default(uuid())
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+  action      String
+  resource    String
+  createdAt   DateTime @default(now())
+}
+
+model Indicator {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       Float
+  description String?
+  updatedAt   DateTime @updatedAt
+}

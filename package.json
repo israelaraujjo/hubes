@@ -1,0 +1,22 @@
+{
+  "name": "hubes-smart-office",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev:frontend": "cd frontend && pnpm dev",
+    "build:frontend": "cd frontend && pnpm build",
+    "lint:frontend": "cd frontend && pnpm lint",
+    "dev:backend": "cd backend && pnpm run start:dev",
+    "build:backend": "cd backend && pnpm run build",
+    "lint:backend": "cd backend && pnpm run lint",
+    "docker:up": "docker compose -f docker/docker-compose.yml up --build",
+    "docker:down": "docker compose -f docker/docker-compose.yml down"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.27.0",
+    "typescript": "^5.5.4"
+  }
+}

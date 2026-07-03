@@ -1,0 +1,13 @@
+node_modules
+dist
+.env
+.env.*
+frontend/node_modules
+frontend/.next
+frontend/.turbo
+backend/node_modules
+backend/dist
+backend/.env
+docker/.env
+**/*.log
+.DS_Store
